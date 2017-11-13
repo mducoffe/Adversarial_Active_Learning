@@ -168,7 +168,7 @@ def saving(model, labelled_data, unlabelled_data, test_data, repo, filename):
 def active_selection(model, unlabelled_data, nb_data, active_method):
     assert active_method in ['uncertainty', 'egl', 'random'], ('Unknown active criterion %s', active_method)
     if active_method=='uncertainty':
-        query, unlabelled_data = uncertainty_selection(model, unlabelled_data, nb_data, threshold)
+        query, unlabelled_data = uncertainty_selection(model, unlabelled_data, nb_data)
     if active_method=='random':
         query, unlabelled_data = random_selection(unlabelled_data, nb_data)
     if active_method=='egl':
@@ -196,12 +196,13 @@ def uncertainty_selection(model, unlabelled_data, nb_data):
     index_query = index[:nb_data]
     index_unlabelled = index[nb_data:]
 
-    if len(labelled_data[0])==0:
-        new_data = unlabelled_data[0][index_query]
-        new_labels = unlabelled_data[1][index_query]
+    new_data = unlabelled_data[0][index_query]
+    new_labels = unlabelled_data[1][index_query]
+    """
     else:
         new_data = np.concatenate([labelled_data[0], unlabelled_data[0][index_query]], axis=0)
         new_labels = np.concatenate([labelled_data[1], unlabelled_data[1][index_query]], axis=0)
+    """
     return (new_data, new_labels), \
            (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
 
