@@ -256,9 +256,10 @@ def egl_selection(model, unlabelled_data, nb_data):
            (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
            
 def adversarial_selection(model, unlabelled_data, nb_data, add_adv=False, repo='.', filename = None):
-    active = Adversarial_DeepFool(model=model, n_channels=3,
-                                  img_nrows=32, img_ncols=32)
-    
+    img_size = model.get_input_shape_at(0)
+    n_channels, img_nrows, img_ncols = img_size[1:]
+    active = Adversarial_DeepFool(model=model, n_channels=n_channels,
+                                  img_nrows=img_nrows, img_ncols=img_ncols)
     # select a subset of size 10*nb_data
     n = min(300, len(unlabelled_data[0]))
     subset_index = np.random.permutation(len(unlabelled_data[0]))
@@ -345,13 +346,13 @@ if __name__=="__main__":
     
     parser = argparse.ArgumentParser(description='Active Learning')
 
-    parser.add_argument('--id_experiment', type=int, default=2, help='id number of experiment')
+    parser.add_argument('--id_experiment', type=int, default=0, help='id number of experiment')
     parser.add_argument('--repo', type=str, default='.', help='repository for log')
-    parser.add_argument('--filename', type=str, default='test_0', help='csv filename')
+    parser.add_argument('--filename', type=str, default='test_1', help='csv filename')
     parser.add_argument('--num_sample', type=int, default=10, help='size of the initial training set')
     parser.add_argument('--data_name', type=str, default='MNIST', help='dataset')
     parser.add_argument('--network_name', type=str, default='LeNet5', help='network')
-    parser.add_argument('--active', type=str, default='random', help='active techniques')
+    parser.add_argument('--active', type=str, default='aaq', help='active techniques')
     args = parser.parse_args()
                                                                                                                                                                                                                              
 

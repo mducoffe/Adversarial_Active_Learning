@@ -21,7 +21,7 @@ class Adversarial_example(object):
     
     def __init__(self, model, n_channels=3, img_nrows=32, img_ncols=32, 
                  nb_class=10):
-
+        """
         if K.image_dim_ordering() == 'th':
             img_shape = (1, n_channels, img_nrows, img_ncols)
             adversarial_image = K.placeholder((1, n_channels, img_nrows, img_ncols))
@@ -32,6 +32,12 @@ class Adversarial_example(object):
             adversarial_image = K.placeholder((1, img_nrows, img_ncols, n_channels))
             adversarial_target = K.placeholder((1, nb_class))
             adv_noise = K.placeholder((1, img_nrows, img_ncols, n_channels))
+        """
+        
+        img_shape = (1,n_channels, img_nrows, img_ncols)
+        adversarial_image = K.placeholder((1, n_channels, img_nrows, img_ncols))
+        adversarial_target = K.placeholder((1, nb_class))
+        adv_noise = K.placeholder((1, n_channels, img_nrows, img_ncols))
             
         self.model = model
         
@@ -61,7 +67,7 @@ class Adversarial_example(object):
         
         prediction = self.model.call(self.adversarial_image)
         self.predict_ = K.function([K.learning_phase(), self.adversarial_image], K.argmax(prediction, axis=1))
-        
+
     def generate(data):
         raise NotImplementedError()
         
