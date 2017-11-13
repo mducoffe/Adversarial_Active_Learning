@@ -19,6 +19,7 @@ from contextlib import closing
 import os
 from build_model import build_model_func
 from build_data import build_data_func, getSize
+from adversarial_active_criterion import Adversarial_DeepFool
 
 import pickle
 import gc
@@ -165,14 +166,18 @@ def saving(model, labelled_data, unlabelled_data, test_data, repo, filename):
 
 #%%
 
-def active_selection(model, unlabelled_data, nb_data, active_method):
-    assert active_method in ['uncertainty', 'egl', 'random'], ('Unknown active criterion %s', active_method)
+def active_selection(model, unlabelled_data, nb_data, active_method, repo, tmp_adv):
+    assert active_method in ['uncertainty', 'egl', 'random', 'aaq'], ('Unknown active criterion %s', active_method)
     if active_method=='uncertainty':
         query, unlabelled_data = uncertainty_selection(model, unlabelled_data, nb_data)
     if active_method=='random':
         query, unlabelled_data = random_selection(unlabelled_data, nb_data)
     if active_method=='egl':
         query, unlabelled_data = egl_selection(model, unlabelled_data, nb_data)
+    if active_method=='aaq':
+        query, unlabelled_data = adversarial_selection(model, unlabelled_data, nb_data, False, repo, tmp_adv)
+    if active_method=='saaq':
+        query, unlabelled_data = adversarial_selection(model, unlabelled_data, nb_data, True, repo, tmp_adv)    
         
         
     return query, unlabelled_data
@@ -184,7 +189,8 @@ def random_selection(unlabelled_data, nb_data):
     
     return (unlabelled_data[0][index_query], unlabelled_data[1][index_query]), \
            (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
-           
+
+# add CEAL
 def uncertainty_selection(model, unlabelled_data, nb_data):
 
     preds = model.predict(unlabelled_data[0])
@@ -248,6 +254,47 @@ def egl_selection(model, unlabelled_data, nb_data):
 
     return (unlabelled_data[0][index_query], unlabelled_data[1][index_query]), \
            (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
+           
+def adversarial_selection(model, unlabelled_data, nb_data, add_adv=False, repo='.', filename = None):
+    active = Adversarial_DeepFool(model=model, n_channels=3,
+                                  img_nrows=32, img_ncols=32)
+    
+    # select a subset of size 10*nb_data
+    n = min(300, len(unlabelled_data[0]))
+    subset_index = np.random.permutation(len(unlabelled_data[0]))
+    subset = unlabelled_data[0][subset_index[:n]]
+    # here consider or not the adv examples for pseudo labelling
+    # pick option
+    adversarial, attacks = active.generate(subset)
+    
+    if not(filename is None):
+        # save the first adv
+        img = unlabelled_data[0][subset_index[adversarial[0]]]
+        adv_img = attacks[0]
+        save_adv(repo, filename, img, adv_img)
+    index_query = subset_index[adversarial[:nb_data]]
+    index_unlabelled = np.concatenate( (subset_index[adversarial[nb_data:]], subset_index[n:]))
+    
+    if add_adv:
+        new_data = np.concatenate([unlabelled_data[0][index_query], attacks[:nb_data]], axis=0)
+        new_labels = np.concatenate([unlabelled_data[1][index_query], unlabelled_data[1][index_query]], axis=0)
+        
+        return (new_data, new_labels), \
+              (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
+    else:
+        return (unlabelled_data[0][index_query], unlabelled_data[1][index_query]), \
+               (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
+               
+def save_adv(repo, filename, img, adv_img):
+    i = 0
+    assert os.path.isdir(repo), ('unknown repository %s', repo)
+    while os.path.isfile(os.path.join(repo, filename+'_'+str(i)+'.pkl')):
+        i+=1
+        
+    filename = os.path.join(repo, filename+'_'+str(i)+'.pkl')
+    
+    with closing(open(os.path.join(repo, filename), 'wb')) as f:
+        pkl.dump([img, adv_img], f, protocol =pickle.HIGHEST_PROTOCOL)
 
 #%%
 def active_learning(num_sample, data_name, network_name, active_name,
@@ -255,6 +302,9 @@ def active_learning(num_sample, data_name, network_name, active_name,
     
     # create a model and do a reinit function
     tmp_filename = 'tmp_{}_{}_{}.pkl'.format(data_name, network_name, active_name)
+    tmp_adv = None
+    if active_name in ['aaq', 'saaq']:
+        tmp_adv = 'adv_{}_{}_{}'.format(data_name, network_name, active_name)
     filename = filename+'_{}_{}_{}'.format(data_name, network_name, active_name)
     img_size = getSize(data_name)
     # TO DO filename
@@ -272,7 +322,7 @@ def active_learning(num_sample, data_name, network_name, active_name,
         i+=1
         model = active_training(labelled_data, network_name, img_size, batch_size=batch_size)
         
-        query, unlabelled_data = active_selection(model, unlabelled_data, nb_query, active_name) # TO DO
+        query, unlabelled_data = active_selection(model, unlabelled_data, nb_query, active_name, repo, tmp_adv) # TO DO
         print('SUCCEED')
         evaluate(model, percentage_data, test_data, nb_exp, repo, filename)
         # SAVE
@@ -288,7 +338,7 @@ def active_learning(num_sample, data_name, network_name, active_name,
         labelled_data_1 = np.concatenate((labelled_data[1], query[1]), axis=0)
         labelled_data = (labelled_data_0, labelled_data_1)
         #update percentage_data
-        percentage_data = len(labelled_data[0])
+        percentage_data +=nb_query
         
 #%%
 if __name__=="__main__":
