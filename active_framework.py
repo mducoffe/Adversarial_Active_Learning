@@ -167,7 +167,7 @@ def saving(model, labelled_data, unlabelled_data, test_data, repo, filename):
 #%%
 
 def active_selection(model, unlabelled_data, nb_data, active_method, repo, tmp_adv):
-    assert active_method in ['uncertainty', 'egl', 'random', 'aaq'], ('Unknown active criterion %s', active_method)
+    assert active_method in ['uncertainty', 'egl', 'random', 'aaq', 'saaq'], ('Unknown active criterion %s', active_method)
     if active_method=='uncertainty':
         query, unlabelled_data = uncertainty_selection(model, unlabelled_data, nb_data)
     if active_method=='random':
@@ -294,8 +294,8 @@ def save_adv(repo, filename, img, adv_img):
         
     filename = os.path.join(repo, filename+'_'+str(i)+'.pkl')
     
-    with closing(open(os.path.join(repo, filename), 'wb')) as f:
-        pkl.dump([img, adv_img], f, protocol =pickle.HIGHEST_PROTOCOL)
+    with closing(open(filename, 'wb')) as f:
+        pickle.dump([img, adv_img], f, protocol =pickle.HIGHEST_PROTOCOL)
 
 #%%
 def active_learning(num_sample, data_name, network_name, active_name,
