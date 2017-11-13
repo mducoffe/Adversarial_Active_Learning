@@ -167,7 +167,7 @@ def saving(model, labelled_data, unlabelled_data, test_data, repo, filename):
 #%%
 
 def active_selection(model, unlabelled_data, nb_data, active_method, repo, tmp_adv):
-    assert active_method in ['uncertainty', 'egl', 'random', 'aaq'], ('Unknown active criterion %s', active_method)
+    assert active_method in ['uncertainty', 'egl', 'random', 'aaq', 'saaq'], ('Unknown active criterion %s', active_method)
     if active_method=='uncertainty':
         query, unlabelled_data = uncertainty_selection(model, unlabelled_data, nb_data)
     if active_method=='random':
@@ -352,7 +352,7 @@ if __name__=="__main__":
     parser.add_argument('--num_sample', type=int, default=10, help='size of the initial training set')
     parser.add_argument('--data_name', type=str, default='MNIST', help='dataset')
     parser.add_argument('--network_name', type=str, default='LeNet5', help='network')
-    parser.add_argument('--active', type=str, default='aaq', help='active techniques')
+    parser.add_argument('--active', type=str, default='saaq', help='active techniques')
     args = parser.parse_args()
                                                                                                                                                                                                                              
 
