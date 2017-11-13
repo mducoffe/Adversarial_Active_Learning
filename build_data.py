@@ -168,10 +168,10 @@ def getSize(dataset_name):
         return (1,28,28)
     
     if dataset_name=='svhn':
-        return (1,32,32)
+        return (3,32,32)
     
     if dataset_name=='cifar':
-        return (1,32,32)
+        return (3,32,32)
         
     return None
 

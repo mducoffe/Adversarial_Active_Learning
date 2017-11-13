@@ -108,7 +108,6 @@ def build_model_LeNet5(img_size, nb_classes):
 
     nb_pool = 2
     nb_channel, img_rows, img_cols = img_size
-    img_rows=28; img_cols=28
     model = Sequential()
     
     model.add(Conv2D(6, (5, 5), padding='valid', input_shape = (nb_channel, img_rows, img_cols), data_format='channels_first'))
