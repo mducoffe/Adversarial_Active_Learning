@@ -294,8 +294,8 @@ def save_adv(repo, filename, img, adv_img):
         
     filename = os.path.join(repo, filename+'_'+str(i)+'.pkl')
     
-    with closing(open(os.path.join(repo, filename), 'wb')) as f:
-        pkl.dump([img, adv_img], f, protocol =pickle.HIGHEST_PROTOCOL)
+    with closing(open(filename, 'wb')) as f:
+        pickle.dump([img, adv_img], f, protocol =pickle.HIGHEST_PROTOCOL)
 
 #%%
 def active_learning(num_sample, data_name, network_name, active_name,
