@@ -13,8 +13,52 @@ from keras.datasets import mnist, cifar10
 import scipy.misc as misc
 import keras.backend as K
 import os
+from contextlib import closing
+import h5py
 
 SVHN_PATH='./svhn'
+BAG_SHOE_PATH='./dataset'
+
+def build_bag_shoes(num_sample):
+    
+    filename_shoes='shoes_64.hdf5'
+    filename_bag='handbag_64.hdf5'
+    with closing(h5py.File(os.path.join(BAG_SHOE_PATH, filename_shoes), 'r')) as g_shoe:
+        key = g_shoe.keys()[0]
+        x_shoes = g_shoe[key][:].transpose((0,3,1,2))
+        x_train_shoes = x_shoes[:-2000]
+        x_test_shoes = x_shoes[-2000:]
+    with closing(h5py.File(os.path.join(BAG_SHOE_PATH, filename_bag), 'r')) as g_bag:
+        key = g_bag.keys()[0]
+        x_bag = g_bag[key][:].transpose((0,3,1,2))
+        x_train_bag = x_bag[:-2000]
+        x_test_bag = x_bag[-2000:]
+        
+
+    x_train = np.concatenate([x_train_shoes, x_train_bag], axis=0)
+    y_train = np.array([0]*len(x_train_shoes)+[1]*len(x_train_bag))
+    
+    x_test = np.concatenate([x_test_shoes, x_test_bag], axis=0)
+    y_test = np.array([0]*len(x_test_shoes)+[1]*len(x_test_bag))
+    
+    x_train = x_train.astype('float32')
+    x_train /= 255.0
+    x_test = x_test.astype('float32')
+    x_test /= 255.0
+    
+    y_train = kutils.to_categorical(y_train)
+    y_test = kutils.to_categorical(y_test)
+    N = len(x_train)
+    index = np.random.permutation(N)
+    x_train = x_train[index]
+    y_train = y_train[index]
+    
+    x_L = x_train[:num_sample]; y_L = y_train[:num_sample]
+    x_U = x_train[num_sample:]; y_U = y_train[num_sample:]
+
+
+    return (x_L, y_L), (x_U, y_U), (x_test, y_test)
+    
 
 def build_mnist(num_sample):
     
@@ -148,7 +192,7 @@ def build_cifar(num_sample):
 def build_data_func(dataset_name, num_sample):
     dataset_name = dataset_name.lower()
     
-    assert (dataset_name in ['mnist', 'svhn', 'cifar']), 'unknown dataset {}'.format(dataset_name)
+    assert (dataset_name in ['mnist', 'svhn', 'cifar', 'bag_shoes']), 'unknown dataset {}'.format(dataset_name)
     labelled = None; unlabelled=None; test=None;
     if dataset_name=='mnist':
         labelled, unlabelled, test = build_mnist(num_sample)
@@ -161,20 +205,27 @@ def build_data_func(dataset_name, num_sample):
         # TO DO
         labelled, unlabelled, test = build_cifar(num_sample)
         
+    if dataset_name=='bag_shoes':
+        # TO DO
+        labelled, unlabelled, test = build_bag_shoes(num_sample)
+        
     return labelled, unlabelled, test
     
 def getSize(dataset_name):
     dataset_name = dataset_name.lower()
-    assert (dataset_name in ['mnist', 'svhn', 'cifar']), 'unknown dataset {}'.format(dataset_name)
+    assert (dataset_name in ['mnist', 'svhn', 'cifar', 'bag_shoes']), 'unknown dataset {}'.format(dataset_name)
     
     if dataset_name=='mnist':
-        return (1,28,28)
+        return (1,28,28, 10)
     
     if dataset_name=='svhn':
-        return (3,32,32)
+        return (3,32,32,10)
     
     if dataset_name=='cifar':
-        return (3,32,32)
+        return (3,32,32,10)
+        
+    if dataset_name=='bag_shoes':
+        return (3,64,64,2)
         
     return None
 
