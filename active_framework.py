@@ -20,6 +20,7 @@ import os
 from build_model import build_model_func
 from build_data import build_data_func, getSize
 from adversarial_active_criterion import Adversarial_DeepFool
+from bayesian_cnn import bald
 
 import pickle
 import gc
@@ -167,7 +168,7 @@ def saving(model, labelled_data, unlabelled_data, test_data, repo, filename):
 #%%
 
 def active_selection(model, unlabelled_data, nb_data, active_method, repo, tmp_adv):
-    assert active_method in ['uncertainty', 'egl', 'random', 'aaq', 'saaq'], ('Unknown active criterion %s', active_method)
+    assert active_method in ['uncertainty', 'egl', 'random', 'aaq', 'saaq', 'ceal', 'bayesian'], ('Unknown active criterion %s', active_method)
     if active_method=='uncertainty':
         query, unlabelled_data = uncertainty_selection(model, unlabelled_data, nb_data)
     if active_method=='random':
@@ -178,7 +179,10 @@ def active_selection(model, unlabelled_data, nb_data, active_method, repo, tmp_a
         query, unlabelled_data = adversarial_selection(model, unlabelled_data, nb_data, False, repo, tmp_adv)
     if active_method=='saaq':
         query, unlabelled_data = adversarial_selection(model, unlabelled_data, nb_data, True, repo, tmp_adv)    
-        
+    if active_method=='ceal':
+        query, unlabelled_data = ceal_selection(model, unlabelled_data, nb_data)
+    if active_method=='bayesian':
+        query, unlabelled_data = bald_selection(model, unlabelled_data, nb_data)
         
     return query, unlabelled_data
     
@@ -189,6 +193,18 @@ def random_selection(unlabelled_data, nb_data):
     
     return (unlabelled_data[0][index_query], unlabelled_data[1][index_query]), \
            (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
+           
+def bald_selection(model, unlabelled_data, nb_data):
+    index = bald(unlabelled_data[0], model, 50)
+    
+    index_query = index[:nb_data]
+    index_unlabelled = index[nb_data:]
+
+    new_data = unlabelled_data[0][index_query]
+    new_labels = unlabelled_data[1][index_query]
+
+    return (new_data, new_labels), \
+           (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
 
 # add CEAL
 def uncertainty_selection(model, unlabelled_data, nb_data):
@@ -196,6 +212,57 @@ def uncertainty_selection(model, unlabelled_data, nb_data):
     preds = model.predict(unlabelled_data[0])
     log_pred = -np.log(preds)
     entropy = np.sum(preds*log_pred, axis=1)
+    # do entropy
+    index = np.argsort(entropy)[::-1]
+    
+    index_query = index[:nb_data]
+    index_unlabelled = index[nb_data:]
+
+    new_data = unlabelled_data[0][index_query]
+    new_labels = unlabelled_data[1][index_query]
+    """
+    else:
+        new_data = np.concatenate([labelled_data[0], unlabelled_data[0][index_query]], axis=0)
+        new_labels = np.concatenate([labelled_data[1], unlabelled_data[1][index_query]], axis=0)
+    """
+    return (new_data, new_labels), \
+           (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
+           
+
+def pseudo_label(model, unlabelled_data, nb_data, threshold):
+    # do not consider the real labels
+    preds = model.predict(unlabelled_data[0])
+    log_pred = -np.log(preds)
+    entropy = np.sum(preds*log_pred, axis=1)
+    # do entropy
+    index = np.argsort(entropy)
+    
+    delta_index = np.argmin( (entropy[index] < threshold))
+    if delta_index==0:
+        if entropy[index][0]<threshold:
+            return unlabelled_data, ([],[])
+        return ([], []), \
+               unlabelled_data
+    else:
+        print('pseudo labelling...')
+        delta_index-=1
+        index_query = index[:delta_index]
+        labels = kutils.to_categorical(np.argmax(preds[index_query], axis=1), num_classes=10)
+        index_unlabelled = index[delta_index:]
+        
+        return (unlabelled_data[0][index_query], labels), \
+               (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
+               
+               
+def ceal_selection(model, unlabelled_data, nb_data):
+    # consider the lowest entropy for pseudo labelling
+    threshold=0.05
+    labelled_data, unlabelled_data = pseudo_label(model, unlabelled_data, nb_data, threshold)
+
+    preds = model.predict(unlabelled_data[0])
+    log_pred = -np.log(preds)
+    entropy = np.sum(preds*log_pred, axis=1)
+
     # do entropy
     index = np.argsort(entropy)[::-1]
     
@@ -352,7 +419,7 @@ if __name__=="__main__":
     parser.add_argument('--num_sample', type=int, default=10, help='size of the initial training set')
     parser.add_argument('--data_name', type=str, default='MNIST', help='dataset')
     parser.add_argument('--network_name', type=str, default='LeNet5', help='network')
-    parser.add_argument('--active', type=str, default='saaq', help='active techniques')
+    parser.add_argument('--active', type=str, default='bayesian', help='active techniques')
     args = parser.parse_args()
                                                                                                                                                                                                                              
 

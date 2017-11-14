@@ -43,12 +43,12 @@ def get_actif_data(repository, filename):
     return x_labels, y_acc
 #%%
 repository="data/csv"
-dataset='CIFAR'
+dataset='MNIST'
 network='VGG'
-methods = ['random', 'egl', 'uncertainty']
+methods = ['random', 'egl', 'uncertainty', 'aaq', 'saaq']
 filenames =['{}_{}_'.format(dataset, network)+str(method)+'.csv' for method in methods]
 #filenames=['CIFAR_VGG_random.csv', 'CIFAR_VGG_egl.csv', 'CIFAR_LeNet5_uncertainty.csv']
-legends=['random', 'EGL', 'uncertainty']
+legends=methods
 linestyles=['r-', 'b-', 'g--', 'k--', 'p-']
 dico_actif={}
 
