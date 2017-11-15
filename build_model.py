@@ -133,9 +133,11 @@ def build_model_LeNet5(img_size, nb_classes):
      
     return model
      
-def build_model_func(network_archi, img_size=(1,28,28),num_classes=10):
+def build_model_func(network_archi, img_size=(1,28,28, 10)):
     
     network_archi = network_archi.lower()
+    num_classes = img_size[3]
+    img_size = (img_size[0], img_size[1], img_size[2])
     model = None
     assert (network_archi in ['vgg8', 'lenet5', 'alexnet']), ('unknown architecture', network_archi)
     if network_archi == 'vgg8':

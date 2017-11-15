@@ -18,7 +18,7 @@ import os
 
 
 filename="random.csv"
-def get_actif_data(repository, filename):
+def get_actif_data(repository, filename, max_value=1000):
 
     x_labels=[]
     y_acc=[]
@@ -28,8 +28,8 @@ def get_actif_data(repository, filename):
     
         for row in csv_f:
             x, y = int(row[0]), float(row[1])
-            if x>5000:
-                break
+            if x >=max_value:
+                continue
             """
             if y <0.25 and x >600:
                 continue
@@ -45,11 +45,12 @@ def get_actif_data(repository, filename):
 repository="data/csv"
 dataset='MNIST'
 network='VGG'
-methods = ['random', 'egl', 'uncertainty', 'aaq', 'saaq']
+repository = os.path.join(repository, '{}/{}'.format(dataset, network))
+methods = ['random', 'aaq', 'saaq', 'bald', 'ceal', 'egl', 'uncertainty']
 filenames =['{}_{}_'.format(dataset, network)+str(method)+'.csv' for method in methods]
 #filenames=['CIFAR_VGG_random.csv', 'CIFAR_VGG_egl.csv', 'CIFAR_LeNet5_uncertainty.csv']
 legends=methods
-linestyles=['r-', 'b-', 'g--', 'k--', 'p-']
+linestyles=['r-', 'b--', 'b-', 'g-', 'k-', 'c-', 'k-']
 dico_actif={}
 
 for filename, legend, linestyle in zip(filenames, legends, linestyles):
@@ -65,23 +66,11 @@ for key in dico_actif:
     x_labels, y_acc = data
     pl.plot(x_labels,y_acc,linestyle, label=legend)
     pl.hold(True)
+pl.grid()
 pl.hold(False)
-pl.legend(bbox_to_anchor=(0.5, 0.5), loc=2, borderaxespad=0.)
+pl.legend(bbox_to_anchor=(0.5, 0.6), loc=2, borderaxespad=0.)
+pl.savefig('img/test_acc_{}_{}.pdf'.format(dataset, network), dpi=300, bbox_inches='tight')
 #pl.plot(ytest,yest,'+')
 #%%
-xl=pl.axis()
-#pl.plot([min(xl[0],xl[2]),max(xl[1],xl[3])],[min(xl[0],xl[2]),max(xl[1],xl[3])],'k')
-pl.plot(ytest,yest,'+')
-pl.plot([0,45],[0,45],'k')
-#pl.plot([min(xl[0],xl[2]),max(xl[1],xl[3])],[min(xl[0],xl[2]),max(xl[1],xl[3])],'k')
-pl.axis(xl)
 
-pl.xlim([0,45])
-pl.ylim([0,45])
-pl.xlabel('True Wass. distance')
-pl.ylabel('Predicted Wass. distance')
-pl.title('True and predicted Wass. distance')
-pl.legend(('Exact prediction','Model prediction'))
-pl.savefig('imgs/{}_emd_pred_true.png'.format(expe),dpi=300)
-pl.savefig('imgs/{}_emd_pred_true.pdf'.format(expe))
 
