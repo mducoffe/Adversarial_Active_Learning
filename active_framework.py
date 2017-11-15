@@ -21,7 +21,7 @@ from build_model import build_model_func
 from build_data import build_data_func, getSize
 from adversarial_active_criterion import Adversarial_DeepFool
 from bayesian_cnn import bald
-
+import keras.utils.np_utils as kutils
 import pickle
 import gc
 
@@ -195,16 +195,19 @@ def random_selection(unlabelled_data, nb_data):
            (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
            
 def bald_selection(model, unlabelled_data, nb_data):
-    index = bald(unlabelled_data[0], model, 50)
-    
-    index_query = index[:nb_data]
-    index_unlabelled = index[nb_data:]
+    n = min(300, len(unlabelled_data[0]))
+    subset_index = np.random.permutation(len(unlabelled_data[0]))
+    subset = unlabelled_data[0][subset_index[:n]]
+    index = bald(subset, model, 10)
+        
+    index_query = subset_index[index[:nb_data]]
+    index_unlabelled = subset_index[index[nb_data:]]
 
     new_data = unlabelled_data[0][index_query]
     new_labels = unlabelled_data[1][index_query]
 
     return (new_data, new_labels), \
-           (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
+           (np.concatenate([unlabelled_data[0][index_unlabelled], unlabelled_data[0][subset_index[n:]]], axis=0), np.concatenate([unlabelled_data[1][index_unlabelled], unlabelled_data[1][subset_index[n:]]], axis=0))
 
 # add CEAL
 def uncertainty_selection(model, unlabelled_data, nb_data):
