@@ -24,6 +24,7 @@ from bayesian_cnn import bald
 import keras.utils.np_utils as kutils
 import pickle
 import gc
+from keras.preprocessing.image import ImageDataGenerator
 
 #%%
 import resource
@@ -46,28 +47,27 @@ def active_training(labelled_data, network_name, img_size,
     n_train = (int) (N*0.8)
 
     batch_train = min(batch_size, len(x_L))
-
+    steps_per_epoch = int(n_train/batch_train)
     best_model = None
     best_loss = np.inf
     for i in range(repeat):
         # shuffle data and split train and val
         index = np.random.permutation(N)
-        print('A')
         x_train , y_train = (x_L[index[:n_train]], y_L[index[:n_train]])
         x_val , y_val = (x_L[index[n_train:]], y_L[index[n_train:]])
-        print('B')
+        
+        generator_train = ImageDataGenerator()
+        generator_train.fit(x_train, seed=0, augment=True)
+        tmp = generator_train.flow(x_train, y_train, batch_size=batch_size)
         model = build_model_func(network_name, img_size)
         earlyStopping=keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=0, mode='auto')
-        print('C')
-        hist = model.fit(x_train, y_train, 
-             batch_size=batch_train, epochs=epochs,
-             callbacks=[earlyStopping],
-             shuffle=True,
-             validation_data=(x_val, y_val),
-             verbose=0)
-        print('D')
+        
+        hist = model.fit_generator(tmp, steps_per_epoch, epochs=epochs,
+                                   verbose=1,
+                                   callbacks=[earlyStopping],
+                                   validation_data=(x_val, y_val))
+                                   
         loss, acc = model.evaluate(x_val, y_val, verbose=0)
-        print('E')
         if loss < best_loss:
             best_loss = loss;
             best_model = model
@@ -427,7 +427,7 @@ if __name__=="__main__":
     parser.add_argument('--num_sample', type=int, default=100, help='size of the initial training set')
     parser.add_argument('--data_name', type=str, default='bag_shoes', help='dataset')
     parser.add_argument('--network_name', type=str, default='VGG8', help='network')
-    parser.add_argument('--active', type=str, default='random', help='active techniques')
+    parser.add_argument('--active', type=str, default='egl', help='active techniques')
     args = parser.parse_args()
                                                                                                              
 
