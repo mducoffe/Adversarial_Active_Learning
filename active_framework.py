@@ -418,10 +418,14 @@ if __name__=="__main__":
     parser.add_argument('--filename', type=str, default='test_1', help='csv filename')
     parser.add_argument('--num_sample', type=int, default=10, help='size of the initial training set')
     parser.add_argument('--data_name', type=str, default='bag_shoes', help='dataset')
-    parser.add_argument('--network_name', type=str, default='LeNet5', help='network')
+    parser.add_argument('--network_name', type=str, default='VGG8', help='network')
     parser.add_argument('--active', type=str, default='random', help='active techniques')
     args = parser.parse_args()
-                                                                                                                                                                                                                             
+                                                                                                             
+
+
+
+                                                                                                                
 
     nb_exp = args.id_experiment
     repo=args.repo

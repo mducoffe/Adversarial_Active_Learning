@@ -18,7 +18,7 @@ import os
 
 
 filename="random.csv"
-def get_actif_data(repository, filename, max_value=1000):
+def get_actif_data(repository, filename, max_value=800):
 
     x_labels=[]
     y_acc=[]
@@ -34,19 +34,22 @@ def get_actif_data(repository, filename, max_value=1000):
             if y <0.25 and x >600:
                 continue
             """
+            
+            
             if y < y_max:
                 y = y_max
             else:
                 y_max = y
+            
             x_labels.append(x)
             y_acc.append(y)
     return x_labels, y_acc
 #%%
 repository="data/csv"
-dataset='MNIST'
-network='VGG'
+dataset='BagShoes'
+network='LeNet5'
 repository = os.path.join(repository, '{}/{}'.format(dataset, network))
-methods = ['random', 'aaq', 'saaq', 'bald', 'ceal', 'egl', 'uncertainty']
+methods = ['random','aaq', 'saaq', 'uncertainty', 'bald', 'egl']
 filenames =['{}_{}_'.format(dataset, network)+str(method)+'.csv' for method in methods]
 #filenames=['CIFAR_VGG_random.csv', 'CIFAR_VGG_egl.csv', 'CIFAR_LeNet5_uncertainty.csv']
 legends=methods
@@ -66,8 +69,12 @@ for key in dico_actif:
     x_labels, y_acc = data
     pl.plot(x_labels,y_acc,linestyle, label=legend)
     pl.hold(True)
+    
+    
 pl.grid()
 pl.hold(False)
+
+
 pl.legend(bbox_to_anchor=(0.5, 0.6), loc=2, borderaxespad=0.)
 pl.savefig('img/test_acc_{}_{}.pdf'.format(dataset, network), dpi=300, bbox_inches='tight')
 #pl.plot(ytest,yest,'+')
