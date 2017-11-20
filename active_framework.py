@@ -21,7 +21,7 @@ from build_model import build_model_func
 from build_data import build_data_func, getSize
 from adversarial_active_criterion import Adversarial_DeepFool
 from bayesian_cnn import bald
-
+import keras.utils.np_utils as kutils
 import pickle
 import gc
 
@@ -52,18 +52,22 @@ def active_training(labelled_data, network_name, img_size,
     for i in range(repeat):
         # shuffle data and split train and val
         index = np.random.permutation(N)
+        print('A')
         x_train , y_train = (x_L[index[:n_train]], y_L[index[:n_train]])
         x_val , y_val = (x_L[index[n_train:]], y_L[index[n_train:]])
+        print('B')
         model = build_model_func(network_name, img_size)
         earlyStopping=keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=0, mode='auto')
+        print('C')
         hist = model.fit(x_train, y_train, 
              batch_size=batch_train, epochs=epochs,
              callbacks=[earlyStopping],
              shuffle=True,
              validation_data=(x_val, y_val),
              verbose=0)
-
+        print('D')
         loss, acc = model.evaluate(x_val, y_val, verbose=0)
+        print('E')
         if loss < best_loss:
             best_loss = loss;
             best_model = model
@@ -195,16 +199,19 @@ def random_selection(unlabelled_data, nb_data):
            (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
            
 def bald_selection(model, unlabelled_data, nb_data):
-    index = bald(unlabelled_data[0], model, 50)
-    
-    index_query = index[:nb_data]
-    index_unlabelled = index[nb_data:]
+    n = min(100, len(unlabelled_data[0]))
+    subset_index = np.random.permutation(len(unlabelled_data[0]))
+    subset = unlabelled_data[0][subset_index[:n]]
+    index = bald(subset, model, 10)
+        
+    index_query = subset_index[index[:nb_data]]
+    index_unlabelled = subset_index[index[nb_data:]]
 
     new_data = unlabelled_data[0][index_query]
     new_labels = unlabelled_data[1][index_query]
 
     return (new_data, new_labels), \
-           (unlabelled_data[0][index_unlabelled], unlabelled_data[1][index_unlabelled])
+           (np.concatenate([unlabelled_data[0][index_unlabelled], unlabelled_data[0][subset_index[n:]]], axis=0), np.concatenate([unlabelled_data[1][index_unlabelled], unlabelled_data[1][subset_index[n:]]], axis=0))
 
 # add CEAL
 def uncertainty_selection(model, unlabelled_data, nb_data):
@@ -256,7 +263,7 @@ def pseudo_label(model, unlabelled_data, nb_data, threshold):
                
 def ceal_selection(model, unlabelled_data, nb_data):
     # consider the lowest entropy for pseudo labelling
-    threshold=0.05
+    threshold=0.002
     labelled_data, unlabelled_data = pseudo_label(model, unlabelled_data, nb_data, threshold)
 
     preds = model.predict(unlabelled_data[0])
@@ -325,8 +332,9 @@ def egl_selection(model, unlabelled_data, nb_data):
 def adversarial_selection(model, unlabelled_data, nb_data, add_adv=False, repo='.', filename = None):
     img_size = model.get_input_shape_at(0)
     n_channels, img_nrows, img_ncols = img_size[1:]
+    nb_classes = model.get_output_shape_at(0)[-1]
     active = Adversarial_DeepFool(model=model, n_channels=n_channels,
-                                  img_nrows=img_nrows, img_ncols=img_ncols)
+                                  img_nrows=img_nrows, img_ncols=img_ncols, nb_class=nb_classes)
     # select a subset of size 10*nb_data
     n = min(300, len(unlabelled_data[0]))
     subset_index = np.random.permutation(len(unlabelled_data[0]))
@@ -394,7 +402,7 @@ def active_learning(num_sample, data_name, network_name, active_name,
         print('SUCCEED')
         evaluate(model, percentage_data, test_data, nb_exp, repo, filename)
         # SAVE
-        saving(model, labelled_data, unlabelled_data, test_data, repo, tmp_filename)
+        #saving(model, labelled_data, unlabelled_data, test_data, repo, tmp_filename)
         #print('SUCEED')
         #print('step B')
         i=gc.collect()
@@ -416,7 +424,7 @@ if __name__=="__main__":
     parser.add_argument('--id_experiment', type=int, default=0, help='id number of experiment')
     parser.add_argument('--repo', type=str, default='.', help='repository for log')
     parser.add_argument('--filename', type=str, default='test_1', help='csv filename')
-    parser.add_argument('--num_sample', type=int, default=10, help='size of the initial training set')
+    parser.add_argument('--num_sample', type=int, default=100, help='size of the initial training set')
     parser.add_argument('--data_name', type=str, default='bag_shoes', help='dataset')
     parser.add_argument('--network_name', type=str, default='VGG8', help='network')
     parser.add_argument('--active', type=str, default='random', help='active techniques')

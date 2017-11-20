@@ -182,11 +182,11 @@ def build_cifar(num_sample):
     
     x_L = x_train[:num_sample]; y_L = y_train[:num_sample]
     x_U = x_train[num_sample:]; y_U = y_train[num_sample:]
-    
+    """    
     x_L = x_L.transpose((0,3,1,2))
     x_U = x_U.transpose((0,3,1,2))
     x_test = x_test.transpose((0,3,1,2))
-
+    """
     return (x_L, y_L), (x_U, y_U), (x_test, y_test)
 
 def build_data_func(dataset_name, num_sample):
