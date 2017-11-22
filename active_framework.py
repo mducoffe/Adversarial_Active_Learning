@@ -47,7 +47,7 @@ def active_training(labelled_data, network_name, img_size,
     n_train = (int) (N*0.8)
 
     batch_train = min(batch_size, len(x_L))
-    steps_per_epoch = int(n_train/batch_train)
+    steps_per_epoch = int(n_train/batch_train)+1
     best_model = None
     best_loss = np.inf
     for i in range(repeat):
@@ -61,9 +61,8 @@ def active_training(labelled_data, network_name, img_size,
         tmp = generator_train.flow(x_train, y_train, batch_size=batch_size)
         model = build_model_func(network_name, img_size)
         earlyStopping=keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=0, mode='auto')
-        
         hist = model.fit_generator(tmp, steps_per_epoch, epochs=epochs,
-                                   verbose=1,
+                                   verbose=0,
                                    callbacks=[earlyStopping],
                                    validation_data=(x_val, y_val))
                                    
