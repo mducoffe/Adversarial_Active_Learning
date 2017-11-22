@@ -47,7 +47,7 @@ def active_training(labelled_data, network_name, img_size,
     n_train = (int) (N*0.8)
 
     batch_train = min(batch_size, len(x_L))
-    steps_per_epoch = int(n_train/batch_train)
+    steps_per_epoch = int(n_train/batch_train) + 1
     best_model = None
     best_loss = np.inf
     for i in range(repeat):
@@ -61,9 +61,9 @@ def active_training(labelled_data, network_name, img_size,
         tmp = generator_train.flow(x_train, y_train, batch_size=batch_size)
         model = build_model_func(network_name, img_size)
         earlyStopping=keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=0, mode='auto')
-        
+
         hist = model.fit_generator(tmp, steps_per_epoch, epochs=epochs,
-                                   verbose=1,
+                                   verbose=0,
                                    callbacks=[earlyStopping],
                                    validation_data=(x_val, y_val))
                                    
@@ -149,7 +149,7 @@ def loading(repo, filename, num_sample, network_name, data_name):
         labelled_data, unlabelled_data, test_data = build_data_func(data_name, num_sample=num_sample)
     
     return model, labelled_data, unlabelled_data, test_data
-    
+
 def saving(model, labelled_data, unlabelled_data, test_data, repo, filename):
     weights = get_weights(model)
     #data = (weights, labelled_data, unlabelled_data, test_data)
@@ -374,7 +374,7 @@ def save_adv(repo, filename, img, adv_img):
 
 #%%
 def active_learning(num_sample, data_name, network_name, active_name,
-                    nb_exp=0, nb_query=10, repo='test', filename='test.csv'):
+                    nb_exp=0, nb_query=10000, repo='test', filename='test.csv'):
     
     # create a model and do a reinit function
     tmp_filename = 'tmp_{}_{}_{}.pkl'.format(data_name, network_name, active_name)
@@ -398,11 +398,12 @@ def active_learning(num_sample, data_name, network_name, active_name,
         i+=1
         model = active_training(labelled_data, network_name, img_size, batch_size=batch_size)
         
-        query, unlabelled_data = active_selection(model, unlabelled_data, nb_query, active_name, repo, tmp_adv) # TO DO
+        #query, unlabelled_data = active_selection(model, unlabelled_data, nb_query, active_name, repo, tmp_adv) # TO DO
         print('SUCCEED')
         evaluate(model, percentage_data, test_data, nb_exp, repo, filename)
+        return
         # SAVE
-        #saving(model, labelled_data, unlabelled_data, test_data, repo, tmp_filename)
+        saving(model, labelled_data, unlabelled_data, test_data, repo, tmp_filename)
         #print('SUCEED')
         #print('step B')
         i=gc.collect()
@@ -421,13 +422,13 @@ if __name__=="__main__":
     
     parser = argparse.ArgumentParser(description='Active Learning')
 
-    parser.add_argument('--id_experiment', type=int, default=0, help='id number of experiment')
+    parser.add_argument('--id_experiment', type=int, default=4, help='id number of experiment')
     parser.add_argument('--repo', type=str, default='.', help='repository for log')
-    parser.add_argument('--filename', type=str, default='test_1', help='csv filename')
-    parser.add_argument('--num_sample', type=int, default=100, help='size of the initial training set')
-    parser.add_argument('--data_name', type=str, default='bag_shoes', help='dataset')
-    parser.add_argument('--network_name', type=str, default='VGG8', help='network')
-    parser.add_argument('--active', type=str, default='egl', help='active techniques')
+    parser.add_argument('--filename', type=str, default='test_0', help='csv filename')
+    parser.add_argument('--num_sample', type=int, default=45000, help='size of the initial training set')
+    parser.add_argument('--data_name', type=str, default='quick_draw', help='dataset')
+    parser.add_argument('--network_name', type=str, default='LeNet5', help='network')
+    parser.add_argument('--active', type=str, default='random', help='active techniques')
     args = parser.parse_args()
                                                                                                              
 
